@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
+    Map<Integer,Table> tables;
 
     /**
      * Constructor.
@@ -24,6 +25,31 @@ public class Catalog {
      */
     public Catalog() {
         // some code goes here
+        tables = new ConcurrentHashMap<Integer,Table>();
+    }
+
+    private class Table {
+        private DbFile file;
+        private String name;
+        private String pkeyField;
+
+        public Table(DbFile file_, String name_, String pkeyField_) {
+            file = file_;
+            name = name_;
+            pkeyField = pkeyField_;
+        }
+
+        public DbFile getFile() {
+            return file;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getPkey() {
+            return pkeyField;
+        }
     }
 
     /**
@@ -37,6 +63,13 @@ public class Catalog {
      */
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
+        for(Map.Entry<Integer, Table> entry : tables.entrySet()) {
+            if (entry.getValue().equals(name)){
+                tables.remove(entry.getKey());
+                break;}
+        }
+
+        tables.put(file.getId(), new Table(file, name, pkeyField));
     }
 
     public void addTable(DbFile file, String name) {
@@ -60,7 +93,11 @@ public class Catalog {
      */
     public int getTableId(String name) throws NoSuchElementException {
         // some code goes here
-        return 0;
+        for(Map.Entry<Integer, Table> entry: tables.entrySet()) {
+            if (entry.getValue().name.equals(name)) return entry.getKey();
+        }
+
+        throw new NoSuchElementException();
     }
 
     /**
@@ -71,7 +108,10 @@ public class Catalog {
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        if(tables.containsKey(tableid))
+            return tables.get(tableid).getFile().getTupleDesc();
+        
+        throw new NoSuchElementException();
     }
 
     /**
@@ -82,27 +122,37 @@ public class Catalog {
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
         // some code goes here
-        return null;
+        if(tables.containsKey(tableid))
+            return tables.get(tableid).getFile();
+        
+        throw new NoSuchElementException();
     }
 
     public String getPrimaryKey(int tableid) {
         // some code goes here
+        if(tables.containsKey(tableid))
+            return tables.get(tableid).getPkey();
+        
         return null;
     }
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return tables.keySet().iterator();
     }
 
     public String getTableName(int id) {
         // some code goes here
+        if(tables.containsKey(id))
+            return tables.get(id).getName();
+
         return null;
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
+        tables.clear();
     }
     
     /**
