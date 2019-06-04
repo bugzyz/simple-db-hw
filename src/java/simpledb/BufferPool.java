@@ -26,7 +26,7 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
-    private Map<PageId, Page> pages;
+    private ConcurrentHashMap<PageId, Page> pages;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -70,9 +70,7 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        if(pages.contains(pid)) return pages.get(pid);
-
-        throw new DbException();
+        return pages.get(pid);
     }
 
     /**

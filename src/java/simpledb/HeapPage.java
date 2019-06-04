@@ -67,8 +67,7 @@ public class HeapPage implements Page {
     */
     private int getNumTuples() {        
         // some code goes here
-        return 0;
-
+        return (BufferPool.getPageSize() * 8) / (td.getSize() * 8 + 1);
     }
 
     /**
@@ -78,7 +77,7 @@ public class HeapPage implements Page {
     private int getHeaderSize() {        
         
         // some code goes here
-        return 0;
+        return getNumTuples() % 8 == 0 ? getNumTuples() / 8 : getNumTuples() / 8 + 1;
                  
     }
     
@@ -111,8 +110,8 @@ public class HeapPage implements Page {
      * @return the PageId associated with this page.
      */
     public HeapPageId getId() {
-    // some code goes here
-    throw new UnsupportedOperationException("implement this");
+        // some code goes here
+        return pid;
     }
 
     /**
@@ -282,7 +281,26 @@ public class HeapPage implements Page {
      */
     public int getNumEmptySlots() {
         // some code goes here
-        return 0;
+        int empty_slot_number = 0;
+        for (byte bt : header) {
+            if ((bt & (1 << 0)) == 0)
+                empty_slot_number++;
+            if ((bt & (1 << 1)) == 0)
+                empty_slot_number++;
+            if ((bt & (1 << 2)) == 0)
+                empty_slot_number++;
+            if ((bt & (1 << 3)) == 0)
+                empty_slot_number++;
+            if ((bt & (1 << 4)) == 0)
+                empty_slot_number++;
+            if ((bt & (1 << 5)) == 0)
+                empty_slot_number++;
+            if ((bt & (1 << 6)) == 0)
+                empty_slot_number++;
+            if ((bt & (1 << 7)) == 0)
+                empty_slot_number++;
+        }
+        return empty_slot_number;
     }
 
     /**
@@ -290,7 +308,8 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
         // some code goes here
-        return false;
+        assert (i >= 0 && i < getNumTuples());
+        return (header[i / 8] & (1 << (i % 8))) != 0;
     }
 
     /**
@@ -307,7 +326,31 @@ public class HeapPage implements Page {
      */
     public Iterator<Tuple> iterator() {
         // some code goes here
-        return null;
+        return new Iterator<Tuple>() {
+            private int index = -1;
+
+            @Override
+            public boolean hasNext() {
+                while (index + 1 < numSlots && !isSlotUsed(index + 1)) {
+                    index++;
+                }
+                return index + 1 < numSlots;
+            }
+
+            @Override
+            public Tuple next() {
+                if (hasNext()) {
+                    return tuples[++index];
+                } else {
+                    throw new NoSuchElementException();
+                }
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
 }
