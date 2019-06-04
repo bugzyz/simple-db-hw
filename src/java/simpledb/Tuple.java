@@ -1,6 +1,7 @@
 package simpledb;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -12,6 +13,9 @@ import java.util.Iterator;
 public class Tuple implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    private TupleDesc my_td;
+    private ArrayList<Field> my_fileds;
+    private RecordId my_rid;
 
     /**
      * Create a new tuple with the specified schema (type).
@@ -22,6 +26,11 @@ public class Tuple implements Serializable {
      */
     public Tuple(TupleDesc td) {
         // some code goes here
+        my_td = td;
+        my_fileds = new ArrayList<Field>(td.numFields());
+        for(int i = 0; i!= td.numFields(); i++) {
+            my_fileds.add(null);
+        }
     }
 
     /**
@@ -29,7 +38,7 @@ public class Tuple implements Serializable {
      */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return null;
+        return my_td;
     }
 
     /**
@@ -38,7 +47,7 @@ public class Tuple implements Serializable {
      */
     public RecordId getRecordId() {
         // some code goes here
-        return null;
+        return my_rid;
     }
 
     /**
@@ -49,6 +58,7 @@ public class Tuple implements Serializable {
      */
     public void setRecordId(RecordId rid) {
         // some code goes here
+        my_rid = rid;
     }
 
     /**
@@ -61,6 +71,8 @@ public class Tuple implements Serializable {
      */
     public void setField(int i, Field f) {
         // some code goes here
+        if(i < my_td.numFields())
+            my_fileds.set(i, f);
     }
 
     /**
@@ -71,6 +83,8 @@ public class Tuple implements Serializable {
      */
     public Field getField(int i) {
         // some code goes here
+        if (i < my_td.numFields())
+            return my_fileds.get(i);
         return null;
     }
 
@@ -94,7 +108,7 @@ public class Tuple implements Serializable {
     public Iterator<Field> fields()
     {
         // some code goes here
-        return null;
+        return my_fileds.iterator();
     }
 
     /**
@@ -102,6 +116,7 @@ public class Tuple implements Serializable {
      * */
     public void resetTupleDesc(TupleDesc td)
     {
-        // some code goes here
+        // some code goes here.
+        my_td = td;
     }
 }
