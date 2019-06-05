@@ -64,9 +64,10 @@ public class Catalog {
     public void addTable(DbFile file, String name, String pkeyField) {
         // some code goes here
         for(Map.Entry<Integer, Table> entry : tables.entrySet()) {
-            if (entry.getValue().equals(name)){
+            if (entry.getValue().name.equals(name)){
                 tables.remove(entry.getKey());
-                break;}
+                break;
+            }
         }
 
         tables.put(file.getId(), new Table(file, name, pkeyField));
