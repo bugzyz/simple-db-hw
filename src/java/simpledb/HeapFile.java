@@ -72,17 +72,17 @@ public class HeapFile implements DbFile {
         int pageSize = BufferPool.getPageSize();
         byte[] data = new byte[pageSize];
 
-        Page retPage = null;
         try {
             RandomAccessFile raf = new RandomAccessFile(f, "r");
-            raf.read(data, pageSize * pgNo, pageSize);
-            retPage = new HeapPage((HeapPageId)pid, data);
+            raf.seek(pgNo * pageSize);
+            raf.read(data);
             raf.close();
+            return new HeapPage((HeapPageId)pid, data);
         } catch (Exception e) {
             System.out.println("file not found, me print");
+            return null;
         }
 
-        return retPage;
     }
 
     // see DbFile.java for javadocs
@@ -117,9 +117,6 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
-        final BufferPool bp = Database.getBufferPool();
-        final HeapFile hf = this;
-
         // some code goes here
         return new DbFileIterator() {
             private int curPageId = 0;
@@ -127,16 +124,16 @@ public class HeapFile implements DbFile {
 
             private Iterator<Tuple> getTupleIteratorOfPageId(int pageId)
                     throws DbException, TransactionAbortedException {
-                HeapPageId hpid = new HeapPageId(hf.getId(), pageId);
+                HeapPageId hpid = new HeapPageId(getId(), pageId);
 
-                HeapPage hp = (HeapPage) bp.getPage(tid, hpid, Permissions.READ_ONLY);
-                System.out.println(hp);
-                return ((HeapPage) bp.getPage(tid, hpid, Permissions.READ_ONLY)).iterator();
+                HeapPage hp = (HeapPage) Database.getBufferPool().getPage(tid, hpid, Permissions.READ_ONLY);
+
+                return hp.iterator();
             }
 
             @Override
             public void open() throws DbException, TransactionAbortedException {
-                tupleIt = getTupleIteratorOfPageId(0);
+                tupleIt = getTupleIteratorOfPageId(curPageId++);
             }
     
             @Override
@@ -146,7 +143,7 @@ public class HeapFile implements DbFile {
                 if(curPageId >= numPages()) return false;
 
                 tupleIt = getTupleIteratorOfPageId(curPageId++);
-                return false;
+                return hasNext();
             }
     
             @Override

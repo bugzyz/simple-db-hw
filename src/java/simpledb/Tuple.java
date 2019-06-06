@@ -98,7 +98,14 @@ public class Tuple implements Serializable {
      */
     public String toString() {
         // some code goes here
-        throw new UnsupportedOperationException("Implement this");
+        String res = new String();
+
+        for (int i = 0; i < my_fileds.size(); i++) {
+            res += my_fileds.get(i).toString();
+            if (i != my_fileds.size()-1)
+                res += "\t";
+        }
+        return res;
     }
 
     /**

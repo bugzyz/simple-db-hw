@@ -331,10 +331,11 @@ public class HeapPage implements Page {
 
             @Override
             public boolean hasNext() {
-                while (index + 1 < numSlots && !isSlotUsed(index + 1)) {
-                    index++;
+                int checking_index = index + 1;
+                while (checking_index < numSlots && !isSlotUsed(checking_index)){
+                    checking_index++;
                 }
-                return index + 1 < numSlots;
+                return checking_index < numSlots;
             }
 
             @Override
