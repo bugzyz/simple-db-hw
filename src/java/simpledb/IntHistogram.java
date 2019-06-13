@@ -4,6 +4,13 @@ package simpledb;
  */
 public class IntHistogram {
 
+    private int ntups;
+    private int min;
+    private int max;
+    private double b_width;
+    private int buckets;
+    private int values[];
+
     /**
      * Create a new IntHistogram.
      * 
@@ -21,7 +28,28 @@ public class IntHistogram {
      * @param max The maximum integer value that will ever be passed to this class for histogramming
      */
     public IntHistogram(int buckets, int min, int max) {
-    	// some code goes here
+        // Done
+        this.min = min;
+        this.max = max;
+        this.buckets = buckets;
+
+        if (buckets > max - min + 1) {
+            buckets = max - min + 1;
+        }
+
+        values = new int[buckets];
+        this.b_width = (double) (max - min + 1) / buckets;
+    }
+
+    private int getIndex(int v) {
+        return (int) ((v - min) / b_width);
+    }
+
+    private boolean inRange(int v) {
+        if (v >= min && v <= max) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -29,9 +57,40 @@ public class IntHistogram {
      * @param v Value to add to the histogram
      */
     public void addValue(int v) {
-    	// some code goes here
+        // Done
+        ntups++;
+        values[getIndex(v)] += 1;
+    }
+    
+    private double getGreaterThanPointSelectivity(int v) {
+        int b = getIndex(v);
+        double b_right = (b + 1) * b_width;
+        double b_f = ((double) values[b]) / ntups;
+        double b_part = ((double) (b_right - v)) / b_width;
+        double selectivity = b_f * b_part;
+        for (int i = b + 1; i < buckets; i++) {
+            selectivity += ((double) values[i]) / ntups;
+        }
+        return selectivity;
     }
 
+    private double getLessThanPointSelectivity(int v) {
+        int b = getIndex(v);
+        double b_left = (b) * b_width;
+        double b_f = ((double) values[b]) / ntups;
+        double b_part = ((double) (v - b_left)) / b_width;
+        double selectivity = b_f * b_part;
+        for (int i = 0; i < b; i++) {
+            selectivity += ((double) values[i]) / ntups;
+        }
+        return selectivity;
+    }
+
+    private double getOnePointSelectivity(int v) {
+        int b = getIndex(v);
+
+        return ((double) values[b]) / b_width / ntups;
+    }
     /**
      * Estimate the selectivity of a particular predicate and operand on this table.
      * 
@@ -44,8 +103,53 @@ public class IntHistogram {
      */
     public double estimateSelectivity(Predicate.Op op, int v) {
 
-    	// some code goes here
-        return -1.0;
+        // Done
+        switch (op) {
+        case EQUALS:
+            if (!inRange(v)) {
+                return 0;
+            }
+            return getOnePointSelectivity(v);
+        case GREATER_THAN:
+            if (v >= max) {
+                return 0;
+            }
+            if (v < min) {
+                return 1;
+            }
+            return getGreaterThanPointSelectivity(v);
+        case LESS_THAN:
+            if (v > max) {
+                return 1;
+            }
+            if (v <= min) {
+                return 0;
+            }
+            return getLessThanPointSelectivity(v) - getOnePointSelectivity(v);
+        case LESS_THAN_OR_EQ:
+            if (v >= max) {
+                return 1;
+            }
+            if (v < min) {
+                return 0;
+            }
+            return getLessThanPointSelectivity(v);
+        case GREATER_THAN_OR_EQ:
+            if (v > max) {
+                return 0;
+            }
+            if (v <= min) {
+                return 1;
+            }
+            return getGreaterThanPointSelectivity(v) + getOnePointSelectivity(v);
+        case NOT_EQUALS:
+            if (!inRange(v)) {
+                return 1;
+            }
+            return 1 - getOnePointSelectivity(v);
+        default:
+            return -1.0;
+        }
     }
     
     /**
@@ -66,7 +170,11 @@ public class IntHistogram {
      * @return A string describing this histogram, for debugging purposes
      */
     public String toString() {
-        // some code goes here
-        return null;
+        // Done
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < values.length; i++) {
+            sb.append("values[" + i + "]=" + values[i]);
+        }
+        return sb.toString();
     }
 }
