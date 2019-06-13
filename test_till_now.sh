@@ -1,21 +1,52 @@
-#！/bin/zsh
+# #！/bin/zsh
 
-#1
+#===================================================
+#lab1_1
+echo "========lab1_1==========\n"
 ant runtest -Dtest=TupleTest
 ant runtest -Dtest=TupleDescTest
 
-#2
+#lab1_2
+echo "========lab1_2==========\n"
 ant runtest -Dtest=CatalogTest
 
-#3
+#lab1_3
 
-#4
+#lab1_4
+echo "========lab1_4==========\n"
 ant runtest -Dtest=HeapPageIdTest
 ant runtest -Dtest=RecordIdTest
 ant runtest -Dtest=HeapPageReadTest
 
-#5
+#lab1_5
+echo "========lab1_5==========\n"
 ant runtest -Dtest=HeapFileReadTest
 
-#6
+#lab1_6
+echo "========lab1_6==========\n"
 ant runsystest -Dtest=ScanTest
+
+#===================================================
+#lab2_1
+echo "========lab2_1==========\n"
+ant runtest -Dtest=PredicateTest
+ant runtest -Dtest=JoinPredicateTest
+ant runtest -Dtest=FilterTest
+ant runtest -Dtest=JoinTest
+
+ant runsystest -Dtest=FilterTest
+ant runsystest -Dtest=JoinTest
+
+#===================================================
+#lab2_2
+echo "========lab2_2==========\n"
+ant runtest -Dtest=IntegerAggregatorTest
+ant runtest -Dtest=StringAggregatorTest
+ant runtest -Dtest=AggregateTest
+
+#===================================================
+#lab2_3
+echo "========lab2_3==========\n"
+ant runtest -Dtest=HeapPageWriteTest
+ant runtest -Dtest=HeapFileWriteTest
+ant runtest -Dtest=BufferPoolWriteTest
