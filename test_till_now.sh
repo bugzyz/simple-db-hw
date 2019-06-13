@@ -50,3 +50,15 @@ echo "========lab2_3==========\n"
 ant runtest -Dtest=HeapPageWriteTest
 ant runtest -Dtest=HeapFileWriteTest
 ant runtest -Dtest=BufferPoolWriteTest
+
+#===================================================
+#lab2_4
+echo "========lab2_4==========\n"
+ant runtest -Dtest=InsertTest
+ant runsystest -Dtest=InsertTest
+ant runsystest -Dtest=DeleteTest
+
+#===================================================
+#lab2_5
+echo "========lab2_5==========\n"
+ant runsystest -Dtest=EvictionTest
