@@ -62,3 +62,13 @@ ant runsystest -Dtest=DeleteTest
 #lab2_5
 echo "========lab2_5==========\n"
 ant runsystest -Dtest=EvictionTest
+
+#===================================================
+#lab3_1
+echo "========lab3_1==========\n"
+ant runtest -Dtest=IntHistogramTest
+
+#===================================================
+#lab3_2
+echo "========lab3_2==========\n"
+ant runtest -Dtest=TableStatsTest
