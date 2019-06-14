@@ -156,7 +156,7 @@ public class JoinOptimizer {
             boolean t2pkey, Map<String, TableStats> stats,
             Map<String, Integer> tableAliasToId) {
         int card = 1;
-        // some code goes here
+        // Done
         if (joinOp == Predicate.Op.EQUALS) {
             if (t1pkey) {
                 card = card2;
@@ -231,9 +231,40 @@ public class JoinOptimizer {
             throws ParsingException {
         //Not necessary for labs 1--3
 
-        // some code goes here
+        // Done
         //Replace the following
-        return joins;
+        PlanCache planCache = new PlanCache();
+
+        Set<Set<LogicalJoinNode>> nodeSets = null;
+        // Assuming that joins = {a, b, c}
+        // Looping {{a},{b},{c},{a,b},{a,c},{b,c},{a,b,c}}
+        for (int i = 1; i <= joins.size(); i++) {
+            // Enumerate all kinds of joins combination in different length
+            nodeSets = enumerateSubsets(joins, i);
+            
+            // Computing the lowest cost plan in a speicific subset of join
+            // Looping {a,b,c}, {a,c,b}, {b,a,c}, {b,c,a}, {c,b,a}, {c,a,b}
+            for (Set<LogicalJoinNode> nodeSet: nodeSets) {
+                double costSoFar = Double.MAX_VALUE;
+
+                // Looping a, computing the cost of {b, c} without a
+                for (LogicalJoinNode node: nodeSet) {
+                    CostCard costCard = computeCostAndCardOfSubplan(stats, filterSelectivities,
+                            node, nodeSet, costSoFar, planCache);
+                    if (costCard == null)
+                        continue;
+                    if (costCard.cost < costSoFar) {
+                        costSoFar = costCard.cost;
+                        planCache.addPlan(nodeSet, costSoFar, costCard.card, costCard.plan);
+                    }
+                }
+            }
+        }
+
+        if (explain)
+            printJoins(joins, planCache, stats, filterSelectivities);
+
+        return planCache.getOrder(new HashSet<>(joins));
     }
 
     // ===================== Private Methods =================================
