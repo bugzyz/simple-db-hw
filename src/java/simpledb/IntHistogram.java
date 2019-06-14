@@ -34,11 +34,11 @@ public class IntHistogram {
         this.buckets = buckets;
 
         if (buckets > max - min + 1) {
-            buckets = max - min + 1;
+            this.buckets = max - min + 1;
         }
 
         values = new int[buckets];
-        this.b_width = (double) (max - min + 1) / buckets;
+        this.b_width = (double) (max - min + 1) / this.buckets;
     }
 
     private int getIndex(int v) {
