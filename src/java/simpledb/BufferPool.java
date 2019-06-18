@@ -2,6 +2,7 @@ package simpledb;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -102,7 +103,7 @@ public class BufferPool {
             }
 
             public boolean removeTx(TransactionId tid) {
-                if(containsTx(tid)) {
+                if (containsTx(tid)) {
                     holdLockTxs.remove(tid);
                     return true;
                 }
@@ -127,7 +128,7 @@ public class BufferPool {
             }
             
             // Already have a lock
-            Lock targetLock = pid2lock.get(pid) ;
+            Lock targetLock = pid2lock.get(pid);
 
             // tid own the targetLock
             if (targetLock.containsTx(tid)) {
@@ -171,11 +172,11 @@ public class BufferPool {
 
         public synchronized boolean releaseLock(PageId pid, TransactionId tid) {
             Lock targetLock = pid2lock.get(pid);
-            
+
             // There isn't a lock for pid
             if (targetLock == null)
                 return false;
-            
+
             // Remove tid success
             if (targetLock.removeTx(tid)) {
                 // If targetLock no more owned by any tid, remove it
@@ -197,6 +198,13 @@ public class BufferPool {
                 return false;
 
             return targetLock.containsTx(tid);
+        }
+
+        public synchronized void releaseTxLocks(TransactionId tid) {
+            for (PageId pid : pid2lock.keySet()) {
+                if (holdsLock(pid, tid))
+                    releaseLock(pid, tid);
+            }
         }
     }
     /**
@@ -257,10 +265,7 @@ public class BufferPool {
      */
     public void transactionComplete(TransactionId tid) throws IOException {
         // Done
-        for (PageId pid : pages.keySet()) {
-            if (holdsLock(tid, pid))
-                releasePage(tid, pid);
-        }
+        lockManager.releaseTxLocks(tid);
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
@@ -280,8 +285,26 @@ public class BufferPool {
         // Done
         if (commit) {
             flushPages(tid);
+        } else {
+            restorePages(tid);
         }
+
         transactionComplete(tid);
+    }
+
+    private synchronized void restorePages(TransactionId tid) {
+        // Restore the page from disk to cover the dirty pages
+        for (PageId pid : pages.keySet()) {
+            Page page = pages.get(pid);
+
+            if (page.isDirty() == tid) {
+                int tabId = pid.getTableId();
+                DbFile file = Database.getCatalog().getDatabaseFile(tabId);
+                Page pageFromDisk = file.readPage(pid);
+
+                pages.put(pid, pageFromDisk);
+            }
+        }
     }
 
     /**
@@ -406,29 +429,14 @@ public class BufferPool {
     private synchronized void evictPage() throws DbException {
         // Done
         // Pick a dirty page to evict
-        PageId lastPageId = null;
         for (ConcurrentHashMap.Entry<PageId, Page> entry : pages.entrySet()) {
-            if (entry.getValue().isDirty() != null) {
-                try {
-                    flushPage(entry.getKey());
-                    pages.remove(entry.getKey());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            if (entry.getValue().isDirty() == null) {
+                discardPage(entry.getKey());
                 return;
-            } else 
-                lastPageId = entry.getKey();
+            }
         }
 
-        assert(lastPageId != null);
-        // All page are clean, we evict the last page
-        try {
-            flushPage(lastPageId);
-            pages.remove(lastPageId);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return;
+        throw new DbException("no page can be used to or should to be evicted");
     }
 
 }
