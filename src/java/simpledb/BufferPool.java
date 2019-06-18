@@ -2,6 +2,7 @@ package simpledb;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -20,6 +21,7 @@ public class BufferPool {
     private static final int DEFAULT_PAGE_SIZE = 4096;
 
     private static int pageSize = DEFAULT_PAGE_SIZE;
+    private LockManager lockManager;
 
     /**
      * Default number of pages passed to the constructor. This is used by other
@@ -37,9 +39,10 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        // some code goes here
+        // Done
         pages = new ConcurrentHashMap<PageId, Page>();
         this.numPages = numPages;
+        lockManager = new LockManager();
     }
 
     public static int getPageSize() {
@@ -56,6 +59,146 @@ public class BufferPool {
         BufferPool.pageSize = DEFAULT_PAGE_SIZE;
     }
 
+    private enum LockType {
+        EXCLUSIVE, SHARED
+    }
+
+    private class LockManager {
+        private class Lock {
+            LockType lockType;
+            Vector<TransactionId> holdLockTxs;
+
+            public Lock(LockType lockType) {
+                this.holdLockTxs = new Vector<>();
+                this.lockType = lockType;
+            }
+
+            public void setType(LockType lockType) {
+                this.lockType = lockType;
+            }
+
+            public LockType getType() {
+                return lockType;
+            }
+
+            public boolean isEmpty() {
+                return holdLockTxs.size() == 0;
+            }
+
+            public int size() {
+                return holdLockTxs.size();
+            }
+
+            public boolean containsTx(TransactionId tid) {
+                return holdLockTxs.contains(tid);
+            }
+
+            public boolean addTx(TransactionId tid) {
+                if (!containsTx(tid)) {
+                    holdLockTxs.add(tid);
+                    return true;
+                }
+                return false;
+            }
+
+            public boolean removeTx(TransactionId tid) {
+                if(containsTx(tid)) {
+                    holdLockTxs.remove(tid);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        private ConcurrentHashMap<PageId, Lock> pid2lock;
+
+        public LockManager() {
+            pid2lock = new ConcurrentHashMap<>();
+        }
+
+        public synchronized boolean acquireLock(PageId pid, TransactionId tid, LockType lockType) {
+            // There's no lock on the target page, create one and return true
+            if (pid2lock.get(pid) == null) {
+                Lock newLock = new Lock(lockType);
+                newLock.addTx(tid);
+                pid2lock.put(pid, newLock);
+                
+                return true;
+            }
+            
+            // Already have a lock
+            Lock targetLock = pid2lock.get(pid) ;
+
+            // tid own the targetLock
+            if (targetLock.containsTx(tid)) {
+                // tid is exclusive targetLock's only owner
+                if (targetLock.getType() == LockType.EXCLUSIVE) {
+                    // requiring shared or exclusive lock are both ok
+                    assert targetLock.size() == 1 : "targetlock have more than one tid in exclusive mode";
+                    return true;
+                }
+
+                // tid is shared targetLock's only owner
+                if (targetLock.size() == 1) {
+                    // upgrade to exclusive lock no matter acquiring lockType is shared or exclusive
+                    targetLock.setType(LockType.EXCLUSIVE);
+                    return true;
+                }
+
+                // tid is one of the owner of shared targetLock
+                // Acquiring a exclusive lock is forbiddened
+                if (lockType == LockType.EXCLUSIVE)
+                    return false;
+
+                // Acquiring a shared lock is allowed
+                return true;
+            }
+
+            // tid doesn't own the exclusive targetLock
+            if (targetLock.getType() == LockType.EXCLUSIVE)
+                return false;
+
+            // tid doesn't own the shared targetLock
+            if (lockType == LockType.SHARED) {
+                // allow shared lock join
+                targetLock.addTx(tid);
+                return true;
+            }
+
+            // forbidden exclusive lock join
+            return false;
+        }
+
+        public synchronized boolean releaseLock(PageId pid, TransactionId tid) {
+            Lock targetLock = pid2lock.get(pid);
+            
+            // There isn't a lock for pid
+            if (targetLock == null)
+                return false;
+            
+            // Remove tid success
+            if (targetLock.removeTx(tid)) {
+                // If targetLock no more owned by any tid, remove it
+                if (targetLock.isEmpty())
+                    pid2lock.remove(pid);
+
+                return true;
+            }
+
+            // Remove tid failed that tid doesn't own targetLock
+            return false;
+        }
+
+        public synchronized boolean holdsLock(PageId pid, TransactionId tid) {
+            Lock targetLock = pid2lock.get(pid);
+
+            // if not a single lock is held on pid
+            if (targetLock == null)
+                return false;
+
+            return targetLock.containsTx(tid);
+        }
+    }
     /**
      * Retrieve the specified page with the associated permissions. Will acquire a
      * lock and may block if that lock is held by another transaction.
@@ -72,6 +215,11 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
         // Done
+        while (!lockManager.acquireLock(pid, tid,
+                perm == Permissions.READ_ONLY ? LockType.SHARED : LockType.EXCLUSIVE)) {
+            // Looping until acquire the requring lock
+        }
+
         if (pages.get(pid) != null)
             return pages.get(pid);
 
@@ -98,8 +246,8 @@ public class BufferPool {
      * @param pid the ID of the page to unlock
      */
     public void releasePage(TransactionId tid, PageId pid) {
-        // some code goes here
-        // not necessary for lab1|lab2
+        // Done
+        lockManager.releaseLock(pid, tid);
     }
 
     /**
@@ -108,15 +256,17 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      */
     public void transactionComplete(TransactionId tid) throws IOException {
-        // some code goes here
-        // not necessary for lab1|lab2
+        // Done
+        for (PageId pid : pages.keySet()) {
+            if (holdsLock(tid, pid))
+                releasePage(tid, pid);
+        }
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
     public boolean holdsLock(TransactionId tid, PageId p) {
-        // some code goes here
-        // not necessary for lab1|lab2
-        return false;
+        // Done
+        return lockManager.holdsLock(p, tid);
     }
 
     /**
@@ -127,8 +277,11 @@ public class BufferPool {
      * @param commit a flag indicating whether we should commit or abort
      */
     public void transactionComplete(TransactionId tid, boolean commit) throws IOException {
-        // some code goes here
-        // not necessary for lab1|lab2
+        // Done
+        if (commit) {
+            flushPages(tid);
+        }
+        transactionComplete(tid);
     }
 
     /**
@@ -229,8 +382,21 @@ public class BufferPool {
      * Write all pages of the specified transaction to disk.
      */
     public synchronized void flushPages(TransactionId tid) throws IOException {
-        // some code goes here
-        // not necessary for lab1|lab2
+        // Done
+        for (Page page : pages.values()) {
+            if (page == null)
+                continue;
+
+            TransactionId checkingTid = page.isDirty();
+
+            // If the page isn't dirty then continue
+            if (checkingTid == null)
+                continue;
+
+            // If the page is dirty and equal to tid then flush
+            if (checkingTid.equals(tid))
+                flushPage(page.getId());
+        }
     }
 
     /**
