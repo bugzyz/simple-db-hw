@@ -37,38 +37,59 @@ ant runtest -Dtest=JoinTest
 ant runsystest -Dtest=FilterTest
 ant runsystest -Dtest=JoinTest
 
-#===================================================
 #lab2_2
 echo "========lab2_2==========\n"
 ant runtest -Dtest=IntegerAggregatorTest
 ant runtest -Dtest=StringAggregatorTest
 ant runtest -Dtest=AggregateTest
 
-#===================================================
 #lab2_3
 echo "========lab2_3==========\n"
 ant runtest -Dtest=HeapPageWriteTest
 ant runtest -Dtest=HeapFileWriteTest
 ant runtest -Dtest=BufferPoolWriteTest
 
-#===================================================
 #lab2_4
 echo "========lab2_4==========\n"
 ant runtest -Dtest=InsertTest
 ant runsystest -Dtest=InsertTest
 ant runsystest -Dtest=DeleteTest
 
-#===================================================
 #lab2_5
 echo "========lab2_5==========\n"
 ant runsystest -Dtest=EvictionTest
+
 
 #===================================================
 #lab3_1
 echo "========lab3_1==========\n"
 ant runtest -Dtest=IntHistogramTest
 
-#===================================================
 #lab3_2
 echo "========lab3_2==========\n"
 ant runtest -Dtest=TableStatsTest
+
+#lab3_3&4
+echo "========lab3_3&4==========\n"
+ant runtest -Dtest=JoinOptimizerTest
+ant runsystest -Dtest=QueryTest
+
+#lab3_3&4
+echo "========lab3_3&4==========\n"
+ant runtest -Dtest=JoinOptimizerTest
+ant runsystest -Dtest=QueryTest
+
+
+#===================================================
+#lab4_1 and lab4_2
+echo "========lab4_1 and lab4_2==========\n"
+ant runtest -Dtest=LockingTest
+
+#lab4_3 and lab4_4
+echo "========lab4_3 and lab4_4==========\n"
+ant runtest -Dtest=TransactionTest
+ant runsystest -Dtest=AbortEvictionTest
+
+#lab4_1
+echo "========lab4_1==========\n"
+ant runsystest -Dtest=TransactionTest
